@@ -190,6 +190,22 @@ img {
     margin: 0 auto;
 }
 
+.camera-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.camera-btn:hover {
+  background: #0056b3;
+}
+
+
 /* ===== BUTTONS ===== */
 .btn {
     display: inline-block;

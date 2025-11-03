@@ -3,7 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebas
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-analytics.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
-// Your Firebase configuration (replace with your actual config values)
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAGtcnSQLlZG5jAMQeYFjI2aOlEUPTQ6jU",
   authDomain: "carsos-acc15.firebaseapp.com",
@@ -20,42 +20,70 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getDatabase(app);
 
-// References to sensor data and alert in the Firebase Realtime Database
-const temperatureRef = ref(db, "temp");      // Adjust to your structure
-const humidityRef = ref(db, "humidity");       // Adjust to your structure
-const alertRef = ref(db, "alert");             // Boolean alert variable
+// Firebase references
+const temperatureRef = ref(db, "temp");
+const humidityRef = ref(db, "humidity");
+const alertRef = ref(db, "alert");
+const cameraRef = ref(db, "cameraURL");
 
-// SOS Overlay Element
+// UI elements
 const sosOverlay = document.getElementById("sos-overlay");
 const dismissSosBtn = document.getElementById("dismiss-sos");
+const cameraFrame = document.getElementById("camera-feed");
 
-// Function to trigger the SOS overlay and apply danger theme
+// Timeout control
+let sosTimeout = null;
+
+// Trigger SOS overlay with camera feed and 20 sec timeout
+// function triggerSOSWithTimeout() {
+//   triggerSOS();
+
+//   // Clear any existing timeout
+//   if (sosTimeout) clearTimeout(sosTimeout);
+
+//   // Dismiss after 20 seconds
+//   sosTimeout = setTimeout(() => {
+//     dismissSOS();
+//   }, 200000);
+// }
+
+// Show SOS alert
 function triggerSOS() {
   sosOverlay.classList.remove("hidden");
   document.body.classList.add("danger-theme");
+
+  // Fetch and set camera feed URL
+  onValue(cameraRef, (snapshot) => {
+    const url = snapshot.val();
+    if (url && cameraFrame) {
+      cameraFrame.src = url;
+    }
+  }, (error) => {
+    console.error("Error fetching camera URL:", error);
+  });
 }
 
-// Function to dismiss the SOS overlay and remove danger theme
+// Hide SOS alert
 function dismissSOS() {
   sosOverlay.classList.add("hidden");
   document.body.classList.remove("danger-theme");
+  if (cameraFrame) cameraFrame.src = ""; // Stop camera stream
 }
 
-// Listen for changes on the "alert" variable from Firebase
+// Listen for alert changes
 onValue(alertRef, (snapshot) => {
   const alertStatus = snapshot.val();
+
   if (alertStatus === true) {
-    if (sosOverlay.classList.contains("hidden")) {
-      triggerSOS();
-    }
-  } else {
-    dismissSOS();
+    triggerSOSWithTimeout();  // Show and lock for 20 sec
   }
 }, (error) => {
   console.error("Error fetching alert status:", error);
 });
 
-// Update DOM when temperature data changes (optional: update sensor readings on page)
+
+
+// Temperature updates
 onValue(temperatureRef, (snapshot) => {
   const temperatureData = snapshot.val();
   const tempElement = document.getElementById("temperature");
@@ -64,7 +92,7 @@ onValue(temperatureRef, (snapshot) => {
   if (temperatureData != null) {
     tempElement.innerText = `${temperatureData}°C`;
     const temperature = parseFloat(temperatureData);
-    
+
     if (temperature > 35) {
       tempStatus.textContent = 'Critical - SOS Activated';
       tempStatus.className = 'metric-status danger';
@@ -85,7 +113,7 @@ onValue(temperatureRef, (snapshot) => {
   console.error("Error fetching temperature data:", error);
 });
 
-// Update DOM when humidity data changes (optional)
+// Humidity updates
 onValue(humidityRef, (snapshot) => {
   const humidityData = snapshot.val();
   const humidityElement = document.getElementById("humidity");
@@ -94,7 +122,7 @@ onValue(humidityRef, (snapshot) => {
   if (humidityData != null) {
     humidityElement.innerText = `${humidityData}%`;
     const humidity = parseFloat(humidityData);
-    
+
     if (humidity > 70) {
       humidityStatus.textContent = 'High';
       humidityStatus.className = 'metric-status danger';
@@ -112,7 +140,7 @@ onValue(humidityRef, (snapshot) => {
   console.error("Error fetching humidity data:", error);
 });
 
-// Dismiss button functionality for SOS overlay
+// Dismiss SOS button
 dismissSosBtn.addEventListener("click", dismissSOS);
 
-// Other UI functionalities (navigation, smooth scrolling, etc.) remain as before.
+
